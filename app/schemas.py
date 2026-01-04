@@ -1,9 +1,9 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, constr
 from typing import List
 
 class UserCreate(BaseModel):
     email: EmailStr
-    password: str
+    password: constr(min_length=8, max_length=72)
 
 class UserOut(BaseModel):
     id: int
