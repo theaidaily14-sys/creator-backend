@@ -13,7 +13,12 @@ def register(data: UserCreate, db: Session = Depends(get_db)):
     if existing:
         raise HTTPException(status_code=409, detail="Email already registered")
 
-    user = models.User(email=data.email, password_hash=hash_password(data.password))
+    # bcrypt limit: max 72 BYTES (not characters)
+if len(data.password.encode("utf-8")) > 72:
+    raise HTTPException(status_code=400, detail="Password too long. Max 72 characters.")
+
+user = models.User(email=data.email, password_hash=hash_password(data.password))
+
     db.add(user)
     db.commit()
     db.refresh(user)
