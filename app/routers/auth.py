@@ -9,7 +9,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 @router.post("/register", response_model=UserOut)
 def register(data: UserCreate, db: Session = Depends(get_db)):
-    existing = db.query(models.User).filter(models.User.email == data.email).first()
+existing = db.query(models.User).filter(models.User.email == data.email).first()
     if existing:
         raise HTTPException(status_code=409, detail="Email already registered")
 
