@@ -1,37 +1,46 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from app.deps import get_db, get_current_user
+
 from app import models
+from app.db import get_db
 from app.schemas import UserCreate, UserOut, TokenOut
 from app.security import hash_password, verify_password, create_access_token
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
+
 @router.post("/register", response_model=UserOut)
 def register(data: UserCreate, db: Session = Depends(get_db)):
-existing = db.query(models.User).filter(models.User.email == data.email).first()
+    # Check if email already exists
+    existing = db.query(models.User).filter(models.User.email == data.email).first()
     if existing:
         raise HTTPException(status_code=409, detail="Email already registered")
 
-    # bcrypt limit: max 72 BYTES (not characters)
-if len(data.password.encode("utf-8")) > 72:
-    raise HTTPException(status_code=400, detail="Password too long. Max 72 characters.")
+    # bcrypt hard limit: 72 BYTES
+    if len(data.password.encode("utf-8")) > 72:
+        raise HTTPException(
+            status_code=400,
+            detail="Password too long. Maximum length is 72 characters."
+        )
 
-user = models.User(email=data.email, password_hash=hash_password(data.password))
+    user = models.User(
+        email=data.email,
+        password_hash=hash_password(data.password),
+    )
 
     db.add(user)
     db.commit()
     db.refresh(user)
     return user
 
+
 @router.post("/login", response_model=TokenOut)
 def login(data: UserCreate, db: Session = Depends(get_db)):
-
-    # bcrypt limit: max 72 BYTES
+    # bcrypt hard limit: 72 BYTES
     if len(data.password.encode("utf-8")) > 72:
         raise HTTPException(
             status_code=400,
-            detail="Password too long. Max 72 characters."
+            detail="Password too long. Maximum length is 72 characters."
         )
 
     user = db.query(models.User).filter(models.User.email == data.email).first()
@@ -40,6 +49,11 @@ def login(data: UserCreate, db: Session = Depends(get_db)):
 
     token = create_access_token(str(user.id))
     return TokenOut(access_token=token)
+
+
+@router.get("/me", response_model=UserOut)
+def me(current_user: models.User = Depends(models.get_current_user)):
+    return current_user
 
 
 @router.get("/me", response_model=UserOut)
