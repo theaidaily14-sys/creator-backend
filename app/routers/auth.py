@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app import models
 from app.db import get_db
+from app.deps import get_current_user
 from app.schemas import UserCreate, UserOut, TokenOut
 from app.security import hash_password, verify_password, create_access_token
 
@@ -52,10 +53,6 @@ def login(data: UserCreate, db: Session = Depends(get_db)):
 
 
 @router.get("/me", response_model=UserOut)
-def me(current_user: models.User = Depends(models.get_current_user)):
+def me(current_user: models.User = Depends(get_current_user)):
     return current_user
 
-
-@router.get("/me", response_model=UserOut)
-def me(user: models.User = Depends(get_current_user)):
-    return user
